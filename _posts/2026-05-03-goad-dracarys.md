@@ -1,12 +1,12 @@
-image:
-  path: /assets/img/posts/goad-dracarys-banner.png
-  alt: GOAD Dracarys
 
 ---
 title: "GOAD Dracarys — Writeup"
 date: 2026-05-03 00:00:00 +0200
 categories: [Writeups, GOAD]
 tags: [active-directory, kerberos, glpi, rbcd, delegation, windows-server-2025, dollar-ticket, cve-2025-24799, cve-2025-24801]
+image:
+  path: /assets/img/posts/goad-dracarys-banner.png
+  alt: GOAD Dracarys
 ---
 
 **Dificultad:** Media-Alta  
