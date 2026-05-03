@@ -1,3 +1,7 @@
+image:
+  path: /assets/img/posts/goad-dracarys-banner.png
+  alt: GOAD Dracarys
+
 ---
 title: "GOAD Dracarys — Writeup"
 date: 2026-05-03 00:00:00 +0200
