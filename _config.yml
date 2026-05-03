@@ -55,7 +55,7 @@ theme_mode: dark
 
 cdn:
 
-avatar:
+avatar: /assets/img/avatar.png
 
 social_preview_image:
 
