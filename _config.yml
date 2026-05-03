@@ -7,7 +7,7 @@ lang: es
 
 timezone: Europe/Madrid
 
-title: 0xedied
+title: Tensagram
 
 tagline: Writeups · Homelab · Pentesting
 
@@ -23,7 +23,7 @@ twitter:
   username:
 
 social:
-  name: edied2002
+  name: Tensagram
   email: eddiedean@gmail.com
   links:
     - https://github.com/edied2002
