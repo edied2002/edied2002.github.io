@@ -195,4 +195,4 @@ curl -sk "https://<IP>/fw99/root.txt"
 - [CVE-2025-57819](https://www.cvedetails.com/cve/CVE-2025-57819/) — FreePBX unauthenticated SQL injection
 - [CVE-2025-61678](https://www.cvedetails.com/cve/CVE-2025-61678/) — FreePBX authenticated file upload with path traversal
 - [FreePBX 16.0.40.7](https://www.freepbx.org/)
-- [incron](http://inotify.aiken.cz/?section=incron&page=about) — inotify cron daemon
+- [incron](https://github.com/ar-/incron) — inotify cron daemon
