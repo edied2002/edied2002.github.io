@@ -4,7 +4,7 @@ date: 2026-06-13 00:00:00 +0200
 categories: [Writeups, HackTheBox]
 tags: [jwt, jwe, pac4j, alg-none, ssh-ca, certificate-forgery, linux, medium]
 image:
-  path: /assets/img/posts/postimage.png
+  path: /assets/img/posts/htb-principal-banner.png
   alt: HTB Principal
 ---
 
