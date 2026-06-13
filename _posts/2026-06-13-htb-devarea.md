@@ -4,7 +4,7 @@ date: 2026-06-13 00:00:00 +0200
 categories: [Writeups, HackTheBox]
 tags: [ssrf, soap, mtom, xop, hoverfly, middleware-rce, flask, session-forgery, command-injection, symlink, linux, medium, cve-2022-46364]
 image:
-  path: /assets/img/posts/postimage.png
+  path: /assets/img/posts/htb-devarea-banner.png
   alt: HTB DevArea
 ---
 
