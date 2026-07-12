@@ -8,8 +8,9 @@ image:
   alt: HTB Paperwork
 ---
 
-**Dificultad:** Fácil
+**Dificultad:** Fácil  
 **OS:** Linux (Ubuntu)
+
 **Objetivo:** Comprometer una máquina de temporada de HackTheBox centrada en protocolos de impresión legacy reimplementados en Python (LPD y JetDirect/PJL), encadenando command injection, path traversal y una fuga de file descriptor vía `SCM_RIGHTS` hasta root.
 
 ---
