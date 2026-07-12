@@ -8,8 +8,9 @@ image:
   alt: HTB DevArea
 ---
 
-**Dificultad:** Media
+**Dificultad:** Media  
 **OS:** Linux
+
 **Objetivo:** Explotar SSRF en Apache CXF para leer credenciales de Hoverfly, ejecutar código via middleware Python, escalar abusando de una app Flask con session forgery y command injection, y leer root.txt mediante una cadena de symlinks.
 
 ---

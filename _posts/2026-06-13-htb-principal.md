@@ -8,8 +8,9 @@ image:
   alt: HTB Principal
 ---
 
-**Dificultad:** Media
+**Dificultad:** Media  
 **OS:** Linux
+
 **Objetivo:** Explotar una validación JWT defectuosa en pac4j-jwt para obtener acceso admin, extraer credenciales y escalar a root forjando un certificado SSH firmado con la CA del servidor.
 
 ---
