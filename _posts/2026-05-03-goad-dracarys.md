@@ -1,5 +1,5 @@
 ---
-title: "GOAD Dracarys — Writeup"
+title: "GOAD Dracarys"
 date: 2026-05-03 00:00:00 +0200
 categories: [Writeups, GOAD]
 tags: [active-directory, kerberos, glpi, rbcd, delegation, windows-server-2025, dollar-ticket, cve-2025-24799, cve-2025-24801]

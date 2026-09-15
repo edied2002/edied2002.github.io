@@ -1,5 +1,5 @@
 ---
-title: "HTB Connected — Writeup"
+title: "HTB Connected"
 date: 2026-06-13 00:00:00 +0200
 categories: [Writeups, HackTheBox]
 tags: [freepbx, sqli, file-upload, rce, incron, php, cve-2025-57819, cve-2025-61678, linux, easy]

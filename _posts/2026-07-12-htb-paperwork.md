@@ -1,5 +1,5 @@
 ---
-title: "HTB Paperwork — Writeup"
+title: "HTB Paperwork"
 date: 2026-07-12 00:00:00 +0200
 categories: [Writeups, HackTheBox]
 tags: [lpd, pjl, jetdirect, python, privesc, unix-sockets, scm_rights, linux, easy]
