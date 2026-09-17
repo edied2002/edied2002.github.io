@@ -108,69 +108,8 @@ bloodhound-python -u hodor -p hodor -d north.sevenkingdoms.local -ns 10.6.6.11 -
 
 El grafo muestra que `samwell.tarly` puede tomar posesión de una GPO llamada **`StarkWallpaper`** (`CN={C7F2AD8A-92E1-4507-A5B0-648A36E308A1},CN=Policies,CN=System,DC=north,DC=sevenkingdoms,DC=local`), y desde ahí el camino sigue hasta comprometer el DC del dominio hijo y, cruzando la confianza de bosque, el DC raíz:
 
-<figure>
-<svg viewBox="0 0 600 760" role="img" aria-label="Ruta de ataque: desde hodor:hodor hasta el dominio raíz vía abuso de GPO y un ticket forjado con SID History que cruza la confianza padre-hijo" style="max-width:100%;height:auto;font-family:inherit;color:inherit">
-  <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <polygon points="0,0 10,5 0,10" fill="currentColor"/>
-    </marker>
-  </defs>
-
-  <!-- box 1: hodor -->
-  <rect x="60" y="20" width="480" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  <text x="300" y="46" text-anchor="middle" font-size="13" font-weight="600">hodor : hodor</text>
-  <text x="300" y="64" text-anchor="middle" font-size="11" opacity="0.75">password spray (usuario = contraseña)</text>
-
-  <line x1="300" y1="84" x2="300" y2="150" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="316" y="121" font-size="11" opacity="0.85">fuga en atributo</text>
-  <text x="316" y="134" font-size="11" opacity="0.85">LDAP description</text>
-
-  <!-- box 2: samwell.tarly -->
-  <rect x="60" y="150" width="480" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  <text x="300" y="176" text-anchor="middle" font-size="13" font-weight="600">samwell.tarly : Heartsbane</text>
-  <text x="300" y="194" text-anchor="middle" font-size="11" opacity="0.75">contraseña en texto plano, en su propia ficha AD</text>
-
-  <line x1="300" y1="214" x2="300" y2="280" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="316" y="251" font-size="11" opacity="0.85">WriteOwner + GenericAll</text>
-
-  <!-- box 3: GPO StarkWallpaper -->
-  <rect x="60" y="280" width="480" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
-  <text x="300" y="306" text-anchor="middle" font-size="13" font-weight="600">GPO "StarkWallpaper"</text>
-  <text x="300" y="324" text-anchor="middle" font-size="11" opacity="0.75">samwell.tarly ahora es su dueño</text>
-
-  <line x1="300" y1="344" x2="300" y2="410" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="316" y="374" font-size="11" opacity="0.85">pygpoabuse -&gt;</text>
-  <text x="316" y="387" font-size="11" opacity="0.85">ScheduledTask</text>
-
-  <!-- box 4: WINTERFELL -->
-  <rect x="60" y="410" width="480" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="2"/>
-  <text x="300" y="436" text-anchor="middle" font-size="13" font-weight="600">WINTERFELL — admin local</text>
-  <text x="300" y="454" text-anchor="middle" font-size="11" opacity="0.75">DC de north.sevenkingdoms.local (hijo)</text>
-
-  <line x1="300" y1="474" x2="300" y2="540" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="316" y="504" font-size="11" opacity="0.85">secretsdump -&gt;</text>
-  <text x="316" y="517" font-size="11" opacity="0.85">hash de NORTH$</text>
-
-  <!-- trust boundary -->
-  <line x1="20" y1="507" x2="580" y2="507" stroke="currentColor" stroke-width="1" stroke-dasharray="5,5" opacity="0.6"/>
-  <text x="300" y="502" text-anchor="middle" font-size="10" opacity="0.7">confianza de bosque (SameForestTrust)</text>
-
-  <!-- box 5: forged ticket -->
-  <rect x="60" y="540" width="480" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3,3"/>
-  <text x="300" y="566" text-anchor="middle" font-size="13" font-weight="600">Ticket forjado (Administrator)</text>
-  <text x="300" y="584" text-anchor="middle" font-size="11" opacity="0.75">SID History: ExtraSid = Enterprise Admins del raíz</text>
-
-  <line x1="300" y1="604" x2="300" y2="670" stroke="currentColor" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="316" y="634" font-size="11" opacity="0.85">secretsdump</text>
-  <text x="316" y="647" font-size="11" opacity="0.85">(DRSUAPI)</text>
-
-  <!-- box 6: KINGSLANDING -->
-  <rect x="60" y="670" width="480" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="2"/>
-  <text x="300" y="696" text-anchor="middle" font-size="13" font-weight="600">KINGSLANDING — NTDS completo</text>
-  <text x="300" y="714" text-anchor="middle" font-size="11" opacity="0.75">DC de sevenkingdoms.local (raíz) — dominio comprometido</text>
-</svg>
-<figcaption>Ruta real trazada con BloodHound: de una contraseña filtrada en un atributo LDAP hasta el dominio raíz, cruzando la confianza de bosque con un ticket Kerberos forjado (SID History).</figcaption>
-</figure>
+![Grafo de BloodHound mostrando la ruta samwell.tarly -> WriteOwner -> GPO StarkWallpaper -> WINTERFELL, y el SameForestTrust hacia sevenkingdoms.local](/assets/img/posts/goad-light-bloodhound.png)
+_Grafo real de BloodHound: `samwell.tarly` con `WriteOwner` sobre la GPO `StarkWallpaper`, que aplica sobre `WINTERFELL` (`CoerceToTGT` hacia el dominio), y la relación `SameForestTrust` entre `north.sevenkingdoms.local` y `sevenkingdoms.local` que hace posible el salto de confianza._
 
 Con [bloodyAD](https://github.com/CravateRouge/bloodyAD):
 
