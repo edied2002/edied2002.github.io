@@ -7,13 +7,13 @@ tags: [active-directory, kerberos, password-spray, kerbrute, ldap-description-di
 
 **Dificultad:** Media  
 **Entorno:** Windows Server 2019 — [GOAD-Light](https://github.com/Orange-Cyberdefense/GOAD/tree/main/ad/GOAD-Light), la variante reducida de GOAD para equipos con pocos recursos: bosque de dos dominios (`sevenkingdoms.local` raíz, `north.sevenkingdoms.local` hijo), 3 máquinas en total  
-**Objetivo:** Partiendo de cero contra el bosque, comprometer primero el dominio hijo y usar la relación de confianza para escalar hasta Domain Admin del dominio raíz.
+**Objetivo:** Partiendo de cero contra el bosque, comprometer primero el dominio hijo, usar la relación de confianza para escalar hasta Domain Admin del dominio raíz, y rematar las tres máquinas del lab.
 
 ---
 
 ## Resumen
 
-Este es **GOAD-Light**, la variante ligera de [GOAD](https://github.com/Orange-Cyberdefense/GOAD) pensada para hardware modesto: mismo universo temático de Juego de Tronos que el GOAD clásico (mismos nombres de host y de dominio), pero reducido a un único bosque de dos dominios y 3 máquinas — `sevenkingdoms.local` (raíz, DC `kingslanding`) y `north.sevenkingdoms.local` (hijo, DC `winterfell`, más un miembro `castelblack` con MSSQL). La documentación oficial es explícita sobre lo que se sacrifica frente al GOAD completo: sin bosque externo de confianza (nada de explotación cross-forest), sin *linked server* MSSQL de confianza, sin ESC2/ESC3/ESC4 de ADCS, y sin las vulnerabilidades clásicas de máquina antigua (Zerologon, PetitPotam sin autenticar...). Esto explica de antemano por qué `castelblack` se queda como cabo suelto más adelante: aquí no hay ADCS ni *linked server* que abusar, así que MSSQL solo se puede atacar por credenciales directas — y esas nunca llegaron a cuajar.
+Este es **GOAD-Light**, la variante ligera de [GOAD](https://github.com/Orange-Cyberdefense/GOAD) pensada para hardware modesto: mismo universo temático de Juego de Tronos que el GOAD clásico (mismos nombres de host y de dominio), pero reducido a un único bosque de dos dominios y 3 máquinas — `sevenkingdoms.local` (raíz, DC `kingslanding`) y `north.sevenkingdoms.local` (hijo, DC `winterfell`, más un miembro `castelblack` con MSSQL). La documentación oficial es explícita sobre lo que se sacrifica frente al GOAD completo: sin bosque externo de confianza (nada de explotación cross-forest), sin *linked server* MSSQL de confianza, sin ESC2/ESC3/ESC4 de ADCS, y sin las vulnerabilidades clásicas de máquina antigua (Zerologon, PetitPotam sin autenticar...). Esto explica por qué el intento inicial contra `castelblack` vía MSSQL da vueltas en falso más adelante: aquí no hay ADCS ni *linked server* que abusar, así que el camino real hacia esa máquina no es SQL — es simplemente Domain Admin, que da admin local en cualquier equipo unido al dominio.
 
 La cadena de ataque completa:
 
@@ -25,8 +25,7 @@ La cadena de ataque completa:
 6. `secretsdump` del DC hijo → hash de la cuenta de confianza `NORTH$`.
 7. **Golden Ticket con SID History** (`ticketer.py` con `-extra-sid` apuntando a Enterprise Admins del dominio raíz) → salto de confianza padre-hijo.
 8. `secretsdump` completo del NTDS del DC raíz (`kingslanding`) → **dominio raíz comprometido entero**.
-
-`castelblack` (el miembro con MSSQL del dominio hijo) quedó sin comprometer — lo documento al final como cabo suelto, no como parte lograda de la cadena.
+9. Con el hash de `Administrator` del dominio hijo (Domain Admin, no `sql_svc`) → `psexec.py` contra `castelblack` → **SYSTEM confirmado en las tres máquinas del lab**.
 
 ---
 
@@ -189,16 +188,36 @@ Con el hash de `krbtgt` del dominio raíz en la mano, se puede forjar un Golden 
 
 ---
 
-## Lo que quedó sin resolver: castelblack
+## Fase 5: castelblack — el camino equivocado y el correcto
 
-`castelblack` (10.6.6.22), el miembro del dominio hijo con MSSQL, nunca cayó. Varios intentos, todos fallidos por motivos distintos:
+`castelblack` (10.6.6.22), el miembro del dominio hijo con MSSQL, se resiste al principio con varios intentos fallidos — todos por la misma razón de fondo: usar credenciales que no dan admin local.
 
-- `mssqlclient.py` con el hash de `Administrator` del dominio hijo vía `-windows-auth` → `Login failed. The login is from an untrusted domain` (autenticación integrada de Windows no cruza dominios sin Kerberos bien negociado).
-- `getTGT.py` pidiendo un TGT normal con ese mismo hash → `KDC_ERR_PREAUTH_FAILED` (el hash NTLM capturado no correspondía realmente a esa cuenta en ese contexto, o el NTLM no es suficiente sin RC4 habilitado).
-- Con el ticket forjado por SID History sí autentica el `Login failed` cambia a un mensaje distinto (`Login failed for user 'NORTH\Administrator'`), confirmando que se llega hasta la instancia, pero sin permisos de login SQL.
-- `wmiexec.py`/`psexec.py` contra `castelblack` con el hash de `sql_svc` → error de `SVCManager` (`Unable to open SVCManager`) y recurso compartido no escribible.
+- `mssqlclient.py` con el hash de `Administrator` **vía `-windows-auth`** → `Login failed. The login is from an untrusted domain` (autenticación integrada de Windows no negocia bien Kerberos ahí sin un ticket ya cargado).
+- Con el ticket forjado por SID History sí autentica contra la instancia, pero el mensaje pasa a `Login failed for user 'NORTH\Administrator'` — llega hasta SQL Server, pero esa cuenta no tiene login SQL configurado.
+- `wmiexec.py` / `psexec.py` con el hash de **`sql_svc`** → error de `SVCManager` (`Unable to open SVCManager`) y recurso compartido no escribible — `sql_svc` es sysadmin *dentro* de la instancia SQL, pero no es admin local de Windows, así que no puede abrir el Service Control Manager ni escribir en `ADMIN$`.
 
-Queda como trabajo pendiente para una segunda vuelta al lab.
+El problema nunca fue la máquina, era la cuenta. `Administrator` del dominio hijo (Domain Admin) sí es admin local en cualquier equipo unido al dominio — incluida `castelblack`. Con `-hashes` en vez de `-windows-auth`, y usando `psexec` en lugar de `mssqlclient`:
+
+```bash
+psexec.py NORTH/Administrator@10.6.6.22 -hashes aad3b435b51404eeaad3b435b51404ee:dbd13e1c4e338284ac4e9874f7de6ef4
+```
+
+```
+[*] Found writable share ADMIN$
+[*] Creating service FZGn on 10.6.6.22.....
+[*] Starting service FZGn.....
+
+C:\Windows\system32> whoami
+nt authority\system
+```
+
+Las tres máquinas del lab, completamente comprometidas:
+
+| Máquina | Rol | Acceso final |
+|---------|-----|--------------|
+| `winterfell` | DC de `north.sevenkingdoms.local` (hijo) | Domain Admin + SYSTEM |
+| `kingslanding` | DC de `sevenkingdoms.local` (raíz) | Domain Admin (vía SID History) |
+| `castelblack` | Miembro, MSSQL | SYSTEM |
 
 ---
 
@@ -214,6 +233,7 @@ Queda como trabajo pendiente para una segunda vuelta al lab.
 | DCSync / NTDS dump | `secretsdump.py` contra el DC hijo, extracción de la cuenta de confianza `NORTH$` |
 | SID History / Golden Ticket de confianza padre-hijo | `ticketer.py` con `-extra-sid` apuntando a Enterprise Admins del dominio raíz |
 | NTDS dump del dominio raíz | Compromiso total del bosque tras el salto de confianza |
+| Lateral movement con la cuenta correcta | `psexec.py` con el hash de Domain Admin (no el de la cuenta de servicio SQL) → SYSTEM en `castelblack` |
 
 ---
 
