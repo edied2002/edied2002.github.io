@@ -3,6 +3,9 @@ title: "GOAD Light"
 date: 2026-09-17 00:00:00 +0200
 categories: [Writeups, GOAD]
 tags: [active-directory, kerberos, password-spray, kerbrute, ldap-description-disclosure, bloodhound, gpo-abuse, golden-ticket, sid-history, cross-domain-trust, secretsdump, windows-server-2019, goad-light]
+image:
+  path: /assets/img/posts/goad-light-banner.png
+  alt: GOAD Light
 ---
 
 **Dificultad:** Media  
