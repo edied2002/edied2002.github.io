@@ -1,19 +1,19 @@
 ---
-title: "GOAD Sevenkingdoms"
+title: "GOAD Light"
 date: 2026-09-17 00:00:00 +0200
 categories: [Writeups, GOAD]
-tags: [active-directory, kerberos, password-spray, kerbrute, ldap-description-disclosure, bloodhound, gpo-abuse, golden-ticket, sid-history, cross-domain-trust, secretsdump, windows-server-2019]
+tags: [active-directory, kerberos, password-spray, kerbrute, ldap-description-disclosure, bloodhound, gpo-abuse, golden-ticket, sid-history, cross-domain-trust, secretsdump, windows-server-2019, goad-light]
 ---
 
-**Dificultad:** Media
-**Entorno:** Windows Server 2019 — bosque de dos dominios (`sevenkingdoms.local` raíz, `north.sevenkingdoms.local` hijo)
+**Dificultad:** Media  
+**Entorno:** Windows Server 2019 — [GOAD-Light](https://github.com/Orange-Cyberdefense/GOAD/tree/main/ad/GOAD-Light), la variante reducida de GOAD para equipos con pocos recursos: bosque de dos dominios (`sevenkingdoms.local` raíz, `north.sevenkingdoms.local` hijo), 3 máquinas en total  
 **Objetivo:** Partiendo de cero contra el bosque, comprometer primero el dominio hijo y usar la relación de confianza para escalar hasta Domain Admin del dominio raíz.
 
 ---
 
 ## Resumen
 
-Este es el **GOAD clásico** de Orange Cyberdefense — la variante original con temática de Juego de Tronos, con un bosque de dos dominios: `sevenkingdoms.local` (raíz, DC `kingslanding`) y `north.sevenkingdoms.local` (hijo, DC `winterfell`, más un miembro `castelblack` con MSSQL).
+Este es **GOAD-Light**, la variante ligera de [GOAD](https://github.com/Orange-Cyberdefense/GOAD) pensada para hardware modesto: mismo universo temático de Juego de Tronos que el GOAD clásico (mismos nombres de host y de dominio), pero reducido a un único bosque de dos dominios y 3 máquinas — `sevenkingdoms.local` (raíz, DC `kingslanding`) y `north.sevenkingdoms.local` (hijo, DC `winterfell`, más un miembro `castelblack` con MSSQL). La documentación oficial es explícita sobre lo que se sacrifica frente al GOAD completo: sin bosque externo de confianza (nada de explotación cross-forest), sin *linked server* MSSQL de confianza, sin ESC2/ESC3/ESC4 de ADCS, y sin las vulnerabilidades clásicas de máquina antigua (Zerologon, PetitPotam sin autenticar...). Esto explica de antemano por qué `castelblack` se queda como cabo suelto más adelante: aquí no hay ADCS ni *linked server* que abusar, así que MSSQL solo se puede atacar por credenciales directas — y esas nunca llegaron a cuajar.
 
 La cadena de ataque completa:
 
@@ -281,6 +281,7 @@ Queda como trabajo pendiente para una segunda vuelta al lab.
 ## Recursos
 
 - [GOAD by Orange-Cyberdefense](https://github.com/Orange-Cyberdefense/GOAD)
+- [GOAD-Light — documentación oficial](https://github.com/Orange-Cyberdefense/GOAD/tree/main/ad/GOAD-Light)
 - [bloodyAD](https://github.com/CravateRouge/bloodyAD)
 - [pygpoabuse — Hackndo](https://github.com/Hackndo/pygpoabuse)
 - [kerbrute — ropnop](https://github.com/ropnop/kerbrute)
